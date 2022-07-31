@@ -1,0 +1,35 @@
+name: Test against pacman-git
+on:
+  pull_request:
+    paths-ignore:
+      - "doc/**"
+      - "**/*.po"
+      - "README.md"
+      - ".gitignore"
+
+jobs:
+  build:
+    name: Lint and test yay
+    runs-on: ubuntu-latest
+    container:
+      image: jguer/yay-builder:latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - uses: actions/cache@v1
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: checkout pacman-git
+        run: |
+          pacman -Sy --overwrite=* --noconfirm archlinux-keyring
+          pacman -Su --overwrite=* --noconfirm sudo base-devel
+          git clone https://aur.archlinux.org/pacman-git
+          useradd github
+          chmod -R 777 pacman-git
+          echo 'github ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+          su github -c 'cd pacman-git; yes | makepkg -si --nocheck'
+      - name: Run Build and Tests with pacman-git
+        run: make test

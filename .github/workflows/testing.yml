@@ -1,0 +1,28 @@
+name: Test against pacman
+on:
+  pull_request:
+    paths-ignore:
+      - "doc/**"
+      - "**/*.po"
+      - "README.md"
+      - ".gitignore"
+
+jobs:
+  build:
+    name: Lint and test yay
+    runs-on: ubuntu-latest
+    container:
+      image: jguer/yay-builder:latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - uses: actions/cache@v1
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Lint
+        run: /app/bin/golangci-lint run ./...
+      - name: Run Build and Tests
+        run: make test
